@@ -223,6 +223,7 @@ elif page == "2. Descriptive Statistics":
     A histogram allows us to quickly see if our production is centered around the 10.0 mm target and if the tails of the bell curve spill over the rejection limits.
     """)
 
+    st.markdown("### Overall Process Distribution")
     fig_hist = px.histogram(
         filtered_df, x='Diameter_mm', 
         nbins=30, 
@@ -236,6 +237,27 @@ elif page == "2. Descriptive Statistics":
 
     fig_hist.update_layout(xaxis_title="Diameter (mm)", yaxis_title="Frequency", template="plotly_white")
     st.plotly_chart(fig_hist, use_container_width=True)
+    
+    st.markdown("### Process Distribution by Shift")
+    st.markdown("Here is the breakdown of the distribution for each individual shift to see if a specific shift is off-target.")
+    
+    colors = {'Morning': '#ff7f0e', 'Afternoon': '#2ca02c', 'Night': '#d62728'}
+    for shift in selected_shift:
+        shift_df = filtered_df[filtered_df['Shift'] == shift]
+        if not shift_df.empty:
+            fig = px.histogram(
+                shift_df, x='Diameter_mm', 
+                nbins=20, 
+                marginal='box', 
+                title=f"Distribution: {shift} Shift",
+                color_discrete_sequence=[colors.get(shift, '#1f77b4')],
+                opacity=0.7
+            )
+            fig.add_vline(x=lsl, line_dash="dash", line_color="red", annotation_text="LSL")
+            fig.add_vline(x=usl, line_dash="dash", line_color="red", annotation_text="USL")
+            fig.add_vline(x=target, line_dash="solid", line_color="green", annotation_text="Target")
+            fig.update_layout(xaxis_title="Diameter (mm)", yaxis_title="Frequency", template="plotly_white", height=350)
+            st.plotly_chart(fig, use_container_width=True)
 
 elif page == "3. Statistical Process Control":
     st.title("3. Statistical Process Control")
