@@ -139,9 +139,9 @@ if page == "Introduction":
             agriculture and industry—finding ways to make supply chains more resilient, optimize healthcare delivery, 
             and help organizations embrace digital transformation.
             
-            Over the years, he has contributed extensively to the academic community, publishing 26 papers in journals 
+            Over the years, he has contributed to the academic community, publishing 26 papers in journals 
             like *Heliyon*, *AgriEngineering*, and *Digital Policy, Regulation and Governance*. He also stays highly active 
-            as a peer reviewer, having completed over 44 reviews for publications such as *Agriculture*, *Applied Sciences*, 
+            as a peer reviewer, having completed over 50 reviews for publications such as *Agriculture*, *Applied Sciences*, 
             and *Digital Transformation and Society*.
             """
         )
@@ -173,6 +173,11 @@ elif page == "1. Performance Summary":
     st.markdown("""
     **Case Study Context:** Before making any changes, we must baseline the current capability of our shaft production. Are we meeting customer expectations? 
     We use the **Cpk** (Process Capability Index) and **Sigma Level** to measure how well our process fits within the customer's limits (9.5 to 10.5 mm).
+    
+    * **Mean (μ)**: The average diameter of the shafts. We want this to be as close to the 10.0 mm target as possible.
+    * **Standard Deviation (σ)**: The amount of variation or spread in the diameters. Lower is better.
+    * **Cpk Index**: Measures if the process is capable of staying within customer limits. A value < 1.33 means the process is "Poor" and produces too many defects. A value > 1.33 is "Capable".
+    * **Sigma Level**: Represents how many standard deviations fit between the mean and the customer limits. 6.0 is world-class (3.4 defects per million).
     """)
     
     col1, col2, col3, col4 = st.columns(4)
@@ -180,6 +185,17 @@ elif page == "1. Performance Summary":
     col2.metric("Std Dev. (σ)", f"{sigma:.3f} mm")
     col3.metric("Cpk Index", f"{cpk:.2f}", delta="Poor (<1.33)" if cpk < 1.33 else "Capable (>1.33)", delta_color="inverse")
     col4.metric("Sigma Level", f"{sigma_level:.1f} σ")
+
+    st.markdown("### Comparative Statistics by Shift")
+    st.markdown("Let's look at the breakdown of the diameter metrics to see if any specific shift is underperforming.")
+    shift_stats = filtered_df.groupby('Shift')['Diameter_mm'].agg(
+        Count='count',
+        Mean='mean',
+        Std_Dev='std',
+        Min='min',
+        Max='max'
+    ).reset_index()
+    st.dataframe(shift_stats.style.format(precision=3), use_container_width=True)
 
     st.markdown("### Step-by-Step Calculations")
     
@@ -251,8 +267,31 @@ elif page == "3. Statistical Process Control":
     fig_spc.add_trace(go.Scatter(x=outliers_spc['Part_ID'], y=outliers_spc['Diameter_mm'], 
                                  mode='markers', name='Special Cause', marker=dict(size=10, color='red', symbol='x')))
 
-    fig_spc.update_layout(xaxis_title="Production Sequence (Part ID)", yaxis_title="Diameter (mm)", template="plotly_white")
+    fig_spc.update_layout(title="Overall Process Control Chart", xaxis_title="Production Sequence (Part ID)", yaxis_title="Diameter (mm)", template="plotly_white")
     st.plotly_chart(fig_spc, use_container_width=True)
+    
+    st.markdown("### Control Charts by Shift")
+    st.markdown("To isolate the variation, here are the control charts separated by each shift. Do we see more special causes in the Night shift compared to the Morning shift?")
+    
+    for shift in selected_shift:
+        shift_df = filtered_df[filtered_df['Shift'] == shift]
+        if not shift_df.empty:
+            s_mu = shift_df['Diameter_mm'].mean()
+            s_sigma = shift_df['Diameter_mm'].std()
+            s_ucl = s_mu + (3 * s_sigma)
+            s_lcl = s_mu - (3 * s_sigma)
+            
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=shift_df['Part_ID'], y=shift_df['Diameter_mm'], mode='lines+markers', name='Diameter', marker=dict(size=5, color='gray')))
+            fig.add_trace(go.Scatter(x=shift_df['Part_ID'], y=[s_mu]*len(shift_df), mode='lines', name='Mean (CL)', line=dict(color='blue', width=2)))
+            fig.add_trace(go.Scatter(x=shift_df['Part_ID'], y=[s_ucl]*len(shift_df), mode='lines', name='UCL (+3σ)', line=dict(color='orange', dash='dash')))
+            fig.add_trace(go.Scatter(x=shift_df['Part_ID'], y=[s_lcl]*len(shift_df), mode='lines', name='LCL (-3σ)', line=dict(color='orange', dash='dash')))
+            
+            s_outliers = shift_df[(shift_df['Diameter_mm'] > s_ucl) | (shift_df['Diameter_mm'] < s_lcl)]
+            fig.add_trace(go.Scatter(x=s_outliers['Part_ID'], y=s_outliers['Diameter_mm'], mode='markers', name='Special Cause', marker=dict(size=10, color='red', symbol='x')))
+            
+            fig.update_layout(title=f"Control Chart: {shift} Shift", xaxis_title="Production Sequence (Part ID)", yaxis_title="Diameter (mm)", template="plotly_white", height=350)
+            st.plotly_chart(fig, use_container_width=True)
 
 elif page == "4. Root Cause Analysis":
     st.title("4. Root Cause Analysis")
