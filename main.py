@@ -4,6 +4,7 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from scipy import stats
+import statsmodels.api as sm
 
 # Initial Page Configuration
 st.set_page_config(page_title="Lean Six Sigma Analytics", layout="wide")
@@ -12,6 +13,7 @@ st.set_page_config(page_title="Lean Six Sigma Analytics", layout="wide")
 st.sidebar.title("Navigation / Table of Contents")
 pages = [
     "Introduction",
+    "0. The Case Study",
     "1. Performance Summary",
     "2. Descriptive Statistics",
     "3. Statistical Process Control",
@@ -53,8 +55,7 @@ df = generate_data()
 # ==========================================
 # 2. SIDEBAR CONTROLS & GLOBAL METRICS
 # ==========================================
-# Only show the parameter sidebar when not on the Introduction page
-if page != "Introduction":
+if page not in ["Introduction", "0. The Case Study"]:
     st.sidebar.header("Process Parameters")
     st.sidebar.markdown("Adjust customer limits and filter data to observe how metrics react.")
 
@@ -101,15 +102,14 @@ if page == "Introduction":
     
     st.markdown(
         """
-        This interactive application is designed to provide a hands-on understanding of
-        the core concepts in supervised machine learning. 
+        This interactive application is designed to provide a hands-on understanding of the core concepts in **Lean Six Sigma (LSS)** and data-driven process improvement. 
         
-        We will build intuition for how models "learn" by exploring optimization,
-        and then apply these concepts to fundamental models for both regression and classification.
+        We will build intuition for how to measure, analyze, and improve industrial processes by exploring a practical case study. You will apply these concepts using fundamental statistical tools, ranging from descriptive statistics to root cause regression analysis.
         
         ### Table of Contents
-        1. **Performance Summary**: Understand the main KPIs (Mean, Standard Deviation, Cpk, and Sigma Level).
-        2. **Descriptive Statistics**: Visualize the process distribution versus customer specifications using histograms and box plots.
+        0. **The Case Study**: Discover the manufacturing challenge we are trying to solve.
+        1. **Performance Summary**: Baseline the current process using key metrics like Mean, Standard Deviation, Cpk, and Sigma Level.
+        2. **Descriptive Statistics**: Visualize process distribution versus customer specifications using histograms and box plots.
         3. **Statistical Process Control**: Evaluate process stability over time using X Control Charts.
         4. **Root Cause Analysis**: Use correlation and linear regression to identify the impact of variables on the process output.
         
@@ -146,24 +146,66 @@ if page == "Introduction":
             """
         )
 
-elif page == "1. Performance Summary":
-    st.title("Lean Six Sigma Analytics Assistant")
+elif page == "0. The Case Study":
+    st.title("The Challenge: High Defect Rates in Precision Shafts")
+    
     st.markdown("""
-    Welcome to the interactive process analysis. This tool transforms raw data into **actionable knowledge**. 
-    We will navigate from a basic understanding of our production to root cause identification.
+    ### Background
+    A precision engineering plant produces metal shafts for automotive engines. The critical quality characteristic is the **shaft diameter**, which has a strict target of **10.0 mm**, with allowable limits of **9.5 mm (LSL)** to **10.5 mm (USL)**.
+    
+    ### The Problem
+    Recently, customers have been rejecting shipments because a significant portion of the shafts fall outside these specification limits. This is costing the company money in scrap, rework, and customer dissatisfaction.
+    
+    ### Potential Suspects
+    The engineering team suspects two potential root causes for the variation in diameter:
+    1. **Oven Temperature**: The metal shafts undergo a heat treatment process. Does fluctuations in the oven temperature affect the final diameter?
+    2. **Shift Differences**: Does the quality vary depending on whether the part was produced during the Morning, Afternoon, or Night shift?
+    
+    ### Your Mission
+    Use the Lean Six Sigma tools in the following tabs to:
+    1. **Measure** the current capability of the process.
+    2. **Analyze** if the process is statistically stable over time.
+    3. **Determine** if oven temperature is the root cause of the diameter variation.
+    """)
+
+elif page == "1. Performance Summary":
+    st.title("1. Performance Summary")
+    st.markdown("""
+    **Case Study Context:** Before making any changes, we must baseline the current capability of our shaft production. Are we meeting customer expectations? 
+    We use the **Cpk** (Process Capability Index) and **Sigma Level** to measure how well our process fits within the customer's limits (9.5 to 10.5 mm).
     """)
     
-    st.markdown("### 1. Performance Summary (Key Metrics)")
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Mean (μ)", f"{mu:.3f} mm")
     col2.metric("Std Dev. (σ)", f"{sigma:.3f} mm")
     col3.metric("Cpk Index", f"{cpk:.2f}", delta="Poor (<1.33)" if cpk < 1.33 else "Capable (>1.33)", delta_color="inverse")
     col4.metric("Sigma Level", f"{sigma_level:.1f} σ")
 
+    st.markdown("### Step-by-Step Calculations")
+    
+    st.markdown("#### 1. Mean (μ) and Standard Deviation (σ)")
+    st.latex(r"\mu = \frac{\sum x_i}{N} \quad ; \quad \sigma = \sqrt{\frac{\sum (x_i - \mu)^2}{N-1}}")
+    st.latex(rf"\mu = {mu:.3f} \text{{ mm}} \quad ; \quad \sigma = {sigma:.3f} \text{{ mm}}")
+    
+    st.markdown("#### 2. Process Capability Index (Cpk)")
+    st.markdown("Cpk penalizes the score if the process mean is not perfectly centered between the specification limits.")
+    st.latex(r"Cpk = \min \left( \frac{USL - \mu}{3\sigma}, \frac{\mu - LSL}{3\sigma} \right)")
+    st.latex(rf"Cpk = \min \left( \frac{{{usl} - {mu:.3f}}}{{3 \times {sigma:.3f}}}, \frac{{{mu:.3f} - {lsl}}}{{3 \times {sigma:.3f}}} \right)")
+    st.latex(rf"Cpk = \min ({cpk_upper:.2f}, {cpk_lower:.2f}) = {cpk:.2f}")
+    
+    st.markdown("#### 3. Sigma Level (Approximation via DPMO)")
+    st.latex(r"DPMO = \left( \frac{\text{Defects}}{\text{Total Opportunities}} \right) \times 1,000,000")
+    st.latex(rf"DPMO = \left( \frac{{{defects}}}{{{len(filtered_df)}}} \right) \times 1,000,000 = {dpmo:.1f}")
+    st.latex(r"Z_{score} = \Phi^{-1}\left(\frac{\text{Defects}}{N}\right)")
+    st.latex(r"\text{Sigma Level} = |Z_{score}| + 1.5 \text{ (shift)}")
+    st.latex(rf"\text{Sigma Level} = {sigma_level:.1f} \sigma")
+
 elif page == "2. Descriptive Statistics":
-    st.title("Lean Six Sigma Analytics Assistant")
-    st.markdown("### 2. Process Distribution vs. Customer")
-    st.markdown("We visualize the **Voice of the Process** (Histogram) against the **Voice of the Customer** (Red Lines LSL/USL).")
+    st.title("2. Descriptive Statistics")
+    st.markdown("""
+    **Case Study Context:** We need to visually compare the **Voice of the Process** (how the shaft diameters are actually distributed) against the **Voice of the Customer** (the red LSL and USL lines). 
+    A histogram allows us to quickly see if our production is centered around the 10.0 mm target and if the tails of the bell curve spill over the rejection limits.
+    """)
 
     fig_hist = px.histogram(
         filtered_df, x='Diameter_mm', 
@@ -180,12 +222,20 @@ elif page == "2. Descriptive Statistics":
     st.plotly_chart(fig_hist, use_container_width=True)
 
 elif page == "3. Statistical Process Control":
-    st.title("Lean Six Sigma Analytics Assistant")
-    st.markdown("### 3. Statistical Process Control (X Control Chart)")
-    st.markdown("Are there any special causes of variation? We evaluate the temporal stability of the process.")
+    st.title("3. Statistical Process Control")
+    st.markdown("""
+    **Case Study Context:** Is the variation in our shaft diameter predictable (Common Cause) or erratic (Special Cause)? 
+    We plot the diameters sequentially over time on an X-chart. If points fall outside the Control Limits (UCL/LCL), it indicates a sudden, assignable disruption in the process that must be investigated.
+    """)
 
     ucl = mu + (3 * sigma)
     lcl = mu - (3 * sigma)
+
+    st.markdown("### Step-by-Step Calculations")
+    st.markdown("Control limits are defined by the natural variation of the process ($\pm 3\sigma$), NOT by the customer's limits.")
+    st.latex(r"UCL = \mu + 3\sigma \quad ; \quad LCL = \mu - 3\sigma")
+    st.latex(rf"UCL = {mu:.3f} + 3({sigma:.3f}) = {ucl:.3f}")
+    st.latex(rf"LCL = {mu:.3f} - 3({sigma:.3f}) = {lcl:.3f}")
 
     fig_spc = go.Figure()
     fig_spc.add_trace(go.Scatter(x=filtered_df['Part_ID'], y=filtered_df['Diameter_mm'], 
@@ -205,9 +255,11 @@ elif page == "3. Statistical Process Control":
     st.plotly_chart(fig_spc, use_container_width=True)
 
 elif page == "4. Root Cause Analysis":
-    st.title("Lean Six Sigma Analytics Assistant")
-    st.markdown("### 4. Root Cause Analysis (Variable Relationships)")
-    st.markdown("Through correlation analysis and linear regression, we evaluate how **Temperature** (X) impacts the **Diameter** (Y).")
+    st.title("4. Root Cause Analysis")
+    st.markdown("""
+    **Case Study Context:** The engineering team suspects the heat treatment oven temperature (X) is causing the shaft diameter (Y) to expand unpredictably.
+    We will use Pearson Correlation ($r$) and Linear Regression to mathematically prove or disprove this hypothesis.
+    """)
 
     col_scatter, col_stats = st.columns([2, 1])
 
@@ -241,3 +293,19 @@ elif page == "4. Root Cause Analysis":
             st.error("Not enough evidence of relationship (Accept H0).")
             
         st.info("Conclusion: If the regression is significant, controlling the oven temperature is a vital root cause to reduce diameter variation and improve the Sigma Level.")
+
+    st.markdown("### Step-by-Step Calculations")
+    st.markdown("#### 1. Pearson Correlation Coefficient ($r$)")
+    st.latex(r"r = \frac{\sum(x_i-\bar{x})(y_i-\bar{y})}{\sqrt{\sum(x_i-\bar{x})^2 \sum(y_i-\bar{y})^2}}")
+    st.latex(rf"r = {correlation:.3f}")
+    
+    st.markdown("#### 2. Hypothesis Testing (P-value)")
+    st.markdown("We test if the slope of our regression line is significantly different from zero.")
+    st.latex(r"H_0: \beta_1 = 0 \quad (\text{No relationship})")
+    st.latex(r"H_1: \beta_1 \neq 0 \quad (\text{Relationship exists})")
+    st.latex(rf"\text{{P-value}} = {p_value:.4f}")
+    
+    if p_value < 0.05:
+        st.markdown(rf"Because $P < 0.05$, we **reject $H_0$**. Temperature explains a significant portion of the variance in Diameter.")
+    else:
+        st.markdown(rf"Because $P \ge 0.05$, we **fail to reject $H_0$**. Temperature does not explain the variance in Diameter.")
