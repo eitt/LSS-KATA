@@ -139,7 +139,7 @@ if page == "Introduction":
             agriculture and industry—finding ways to make supply chains more resilient, optimize healthcare delivery, 
             and help organizations embrace digital transformation.
             
-            Over the years, he has contributed extensively to the academic community, publishing 46 papers in journals 
+            Over the years, he has contributed extensively to the academic community, publishing 26 papers in journals 
             like *Heliyon*, *AgriEngineering*, and *Digital Policy, Regulation and Governance*. He also stays highly active 
             as a peer reviewer, having completed over 44 reviews for publications such as *Agriculture*, *Applied Sciences*, 
             and *Digital Transformation and Society*.
