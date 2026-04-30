@@ -198,7 +198,7 @@ elif page == "1. Performance Summary":
     st.latex(rf"DPMO = \left( \frac{{{defects}}}{{{len(filtered_df)}}} \right) \times 1,000,000 = {dpmo:.1f}")
     st.latex(r"Z_{score} = \Phi^{-1}\left(\frac{\text{Defects}}{N}\right)")
     st.latex(r"\text{Sigma Level} = |Z_{score}| + 1.5 \text{ (shift)}")
-    st.latex(rf"\text{Sigma Level} = {sigma_level:.1f} \sigma")
+    st.latex(rf"\text{{Sigma Level}} = {sigma_level:.1f} \sigma")
 
 elif page == "2. Descriptive Statistics":
     st.title("2. Descriptive Statistics")
